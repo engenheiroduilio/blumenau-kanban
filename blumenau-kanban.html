@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Blumenau Iluminação // Funil de Atividades</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+  :root{
+    --bg: #12161b;
+    --bg-grid: #171c22;
+    --panel: #1b2128;
+    --panel-2: #212832;
+    --border: #2b333d;
+    --border-soft: #232a32;
+    --text: #e9edf1;
+    --text-dim: #8d98a3;
+    --text-faint: #5c6672;
+    --accent: #18a0e8;
+    --accent-dim: #18a0e880;
+    --ok: #3ecf8e;
+    --warn: #f2c14e;
+    --late: #f2545b;
+    --done: #5a6472;
+    --radius: 10px;
+    --radius-sm: 6px;
+    font-family: "IBM Plex Sans", sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:transparent;color:var(--text);overflow-x:hidden;}
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 1px 1px, #ffffff08 1px, transparent 1px) 0 0/22px 22px,
+      var(--bg);
+    transition:background-color .2s;
+  }
+  body.light-theme{
+    --bg: #f4f5f7;
+    --bg-grid: #ffffff;
+    --panel: #ffffff;
+    --panel-2: #f0f2f5;
+    --border: #dde1e7;
+    --border-soft: #e7eaee;
+    --text: #1c2228;
+    --text-dim: #5c6672;
+    --text-faint: #949fab;
+    --accent-dim: #18a0e840;
+    background:
+      radial-gradient(circle at 1px 1px, #00000009 1px, transparent 1px) 0 0/22px 22px,
+      var(--bg);
+  }
+  body.light-theme .hdr-mark{ box-shadow:0 0 0 1px #00000015, 0 4px 10px -4px #18a0e855; }
+  body.light-theme .btn{ background:var(--panel); }
+  body.light-theme .btn:hover{ background:var(--panel-2); }
+  body.light-theme .btn-accent{ color:#06263a; }
+  body.light-theme .card{ box-shadow:0 1px 3px #00000012; }
+  body.light-theme .col{ background:var(--bg-grid); border:1px solid var(--border); }
+  body.light-theme ::-webkit-scrollbar-thumb{ background:#00000022; }
+  body.light-theme .overlay{ background:#00000055; }
+  #app{padding:22px 24px 40px;max-width:100%;}
+
+  /* HEADER */
+  .hdr{
+    display:flex;align-items:flex-end;justify-content:space-between;
+    gap:16px;flex-wrap:wrap;
+    border-bottom:1px solid var(--border);
+    padding-bottom:16px;margin-bottom:16px;
+  }
+  .hdr-left{display:flex;align-items:center;gap:12px;}
+  .hdr-mark{
+    width:38px;height:38px;border-radius:8px;
+    background:linear-gradient(145deg,var(--accent),#0f6fa8);
+    display:flex;align-items:center;justify-content:center;
+    font-size:18px;flex:none;
+    box-shadow:0 0 0 1px #00000040, 0 4px 10px -4px #18a0e855;
+  }
+  .hdr-title{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:19px;letter-spacing:0.5px;}
+  .hdr-title span{color:var(--accent);}
+  .hdr-sub{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--text-faint);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;}
+  .hdr-actions{display:flex;gap:8px;}
+
+  .btn{
+    font-family:"IBM Plex Sans",sans-serif;
+    border:1px solid var(--border);background:var(--panel);color:var(--text);
+    padding:8px 14px;border-radius:var(--radius-sm);cursor:pointer;
+    font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:6px;
+    transition:border-color .15s, background .15s;
+  }
+  .btn:hover{border-color:var(--text-faint);background:var(--panel-2);}
+  .btn-accent{background:var(--accent);border-color:var(--accent);color:#06263a;font-weight:600;}
+  .btn-accent:hover{background:#3fb6f2;}
+  .btn-ghost{background:transparent;border:1px dashed var(--border);color:var(--text-dim);}
+  .btn-danger{color:var(--late);}
+  .btn-sm{padding:5px 9px;font-size:12px;}
+
+  /* SUMMARY BAR */
+  .summary{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;}
+  .chip{
+    font-family:"IBM Plex Mono",monospace;font-size:11.5px;
+    border:1px solid var(--border);border-radius:999px;padding:5px 12px 5px 10px;
+    display:flex;align-items:center;gap:7px;color:var(--text-dim);background:var(--panel);
+  }
+  .chip b{color:var(--text);font-weight:600;}
+  .chip-click{cursor:pointer;user-select:none;transition:border-color .15s, background .15s, transform .1s;}
+  .chip-click:hover{border-color:var(--text-faint);background:var(--panel-2);}
+  .chip-click:active{transform:scale(0.97);}
+  .chip-active{border-color:var(--accent) !important;background:#18a0e818 !important;color:var(--text);}
+  .dot{width:7px;height:7px;border-radius:50%;flex:none;}
+  .dot-red{background:var(--late);box-shadow:0 0 6px #f2545b99;}
+  .dot-yellow{background:var(--warn);box-shadow:0 0 6px #f2c14e99;}
+  .dot-green{background:var(--ok);box-shadow:0 0 6px #3ecf8e99;}
+  .dot-grey{background:var(--done);}
+
+  /* BOARD */
+  .board{
+    display:flex;gap:14px;align-items:flex-start;overflow-x:auto;overflow-y:hidden;
+    padding-bottom:16px;
+    scrollbar-width:auto;scrollbar-color:var(--accent) transparent;
+  }
+  .board::-webkit-scrollbar{height:11px;}
+  .board::-webkit-scrollbar-track{background:#ffffff08;border-radius:6px;}
+  .board::-webkit-scrollbar-thumb{background:var(--accent);border-radius:6px;border:2px solid transparent;background-clip:padding-box;}
+  .board::-webkit-scrollbar-thumb:hover{background:#3fb6f2;background-clip:padding-box;}
+  .col{
+    background:var(--bg-grid);border:1px solid var(--border-soft);border-radius:var(--radius);
+    width:296px;flex:none;display:flex;flex-direction:column;max-height:calc(100vh - 220px);
+    min-height:0;
+  }
+  .col.dragover{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);}
+  .col.col-reorder-left{box-shadow:inset 3px 0 0 0 var(--accent);}
+  .col.col-reorder-right{box-shadow:inset -3px 0 0 0 var(--accent);}
+  .col-grip{
+    cursor:grab;color:var(--text-faint);font-size:14px;flex:none;padding:2px 3px;
+    letter-spacing:-2px;line-height:1;user-select:none;
+  }
+  .col-grip:hover{color:var(--text-dim);}
+  .col-grip:active{cursor:grabbing;}
+  .col-hdr{
+    display:flex;align-items:center;gap:8px;padding:12px 10px 10px 12px;
+    border-bottom:1px solid var(--border-soft);
+  }
+  .col-name{
+    flex:1;background:transparent;border:none;color:var(--text);font-weight:600;font-size:13.5px;
+    font-family:"IBM Plex Sans",sans-serif;outline:none;border-radius:4px;padding:3px 5px;min-width:0;
+  }
+  .col-name:hover,.col-name:focus{background:#ffffff0a;}
+  .col-count{
+    font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--text-faint);
+    background:#00000030;border-radius:999px;padding:2px 7px;flex:none;
+  }
+  .col-del{background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:14px;padding:2px 4px;line-height:1;flex:none;}
+  .col-del:hover{color:var(--late);}
+  .col-body{
+    padding:10px;display:flex;flex-direction:column;gap:9px;
+    overflow-y:auto;overflow-x:hidden;flex:1;min-height:0;
+    max-height:calc(100vh - 340px);
+    scrollbar-width:thin;scrollbar-color:var(--accent-dim) transparent;
+  }
+  .col-body::-webkit-scrollbar{width:8px;}
+  .col-body::-webkit-scrollbar-track{background:#00000020;border-radius:4px;}
+  .col-body::-webkit-scrollbar-thumb{background:#18a0e855;border-radius:4px;}
+  .col-body::-webkit-scrollbar-thumb:hover{background:#18a0e888;}
+  .col-scroll-hint{
+    flex:none;height:16px;margin-top:-16px;pointer-events:none;position:relative;z-index:2;
+    background:linear-gradient(to bottom, transparent, var(--bg-grid));
+  }
+  .col-empty{font-size:12px;color:var(--text-faint);text-align:center;padding:14px 6px;border:1px dashed var(--border-soft);border-radius:var(--radius-sm);}
+  .col-add{
+    margin:2px 10px 12px;padding:8px;border:1px dashed var(--border);border-radius:var(--radius-sm);
+    background:transparent;color:var(--text-dim);cursor:pointer;font-size:12.5px;font-family:"IBM Plex Sans",sans-serif;
+  }
+  .col-add:hover{border-color:var(--accent);color:var(--accent);}
+
+  .col-new{
+    width:220px;flex:none;border:1.5px dashed var(--border);border-radius:var(--radius);
+    display:flex;align-items:center;justify-content:center;min-height:70px;
+    color:var(--text-faint);cursor:pointer;font-size:13px;gap:6px;background:transparent;
+  }
+  .col-new:hover{border-color:var(--accent);color:var(--accent);}
+
+  /* CARD */
+  .card{
+    background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-sm);
+    padding:10px 10px 9px 12px;cursor:grab;position:relative;overflow:hidden;
+    flex:none;
+  }
+  .card:active{cursor:grabbing;}
+  .card::before{
+    content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
+  }
+  .card.st-red::before{background:var(--late);}
+  .card.st-yellow::before{background:var(--warn);}
+  .card.st-green::before{background:var(--ok);}
+  .card.st-done::before{background:var(--done);}
+  .card.st-none::before{background:var(--border);}
+  .card.st-done{opacity:0.62;}
+
+  .card-title{font-size:13.5px;font-weight:600;margin:0 0 7px;padding-right:4px;line-height:1.35;word-break:break-word;}
+  .card-user{display:flex;align-items:center;gap:7px;margin-bottom:8px;}
+  .avatar{
+    width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:12px;flex:none;box-shadow:0 0 0 1px #00000040;
+  }
+  .card-user-name{font-size:11.5px;color:var(--text-dim);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .card-user-none{font-size:11.5px;color:var(--text-faint);font-style:italic;}
+
+  .card-obs{font-size:11.5px;color:var(--text-dim);margin-bottom:8px;line-height:1.4;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+
+  .card-dates{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--text-faint);display:flex;flex-direction:column;gap:2px;margin-bottom:8px;}
+  .card-dates b{color:var(--text-dim);font-weight:500;}
+
+  .card-foot{display:flex;align-items:center;justify-content:space-between;gap:6px;}
+  .status-tag{font-family:"IBM Plex Mono",monospace;font-size:10px;font-weight:600;padding:2px 7px;border-radius:999px;letter-spacing:.2px;}
+  .status-tag.st-red{color:var(--late);background:#f2545b1f;}
+  .status-tag.st-yellow{color:var(--warn);background:#f2c14e1f;}
+  .status-tag.st-green{color:var(--ok);background:#3ecf8e1f;}
+  .status-tag.st-done{color:var(--done);background:#5a647222;}
+  .status-tag.st-none{color:var(--text-faint);background:#ffffff08;}
+
+  .chk{display:flex;align-items:center;gap:5px;cursor:pointer;user-select:none;}
+  .chk input{accent-color:var(--accent);width:14px;height:14px;cursor:pointer;}
+  .chk span{font-size:10px;color:var(--text-faint);font-family:"IBM Plex Mono",monospace;}
+
+  /* MODAL */
+  .overlay{
+    position:fixed;inset:0;background:#05070a99;backdrop-filter:blur(2px);
+    display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;
+  }
+  .overlay.hidden{display:none;}
+  .hidden{display:none !important;}
+  .modal{
+    background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+    width:420px;max-width:100%;max-height:88vh;overflow-y:auto;padding:20px;
+  }
+  .modal h3{margin:0 0 4px;font-size:15px;font-family:"IBM Plex Mono",monospace;letter-spacing:.3px;}
+  .modal .modal-sub{font-size:11px;color:var(--text-faint);margin-bottom:16px;}
+  .field{margin-bottom:13px;}
+  .field label{display:block;font-size:11px;color:var(--text-dim);margin-bottom:5px;font-weight:500;letter-spacing:.2px;}
+  .field input[type=text],.field input[type=date],.field textarea,.field select{
+    width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);
+    color:var(--text);padding:8px 10px;font-size:13px;font-family:"IBM Plex Sans",sans-serif;outline:none;
+  }
+  .field input:focus,.field textarea:focus,.field select:focus{border-color:var(--accent);}
+  .field textarea{resize:vertical;min-height:56px;}
+  .field-row{display:flex;gap:10px;}
+  .field-row .field{flex:1;}
+  .modal-actions{display:flex;justify-content:space-between;gap:8px;margin-top:16px;}
+  .modal-actions-right{display:flex;gap:8px;}
+
+  .done-toggle{display:flex;align-items:center;gap:9px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:13px;}
+  .done-toggle input{width:16px;height:16px;accent-color:var(--ok);cursor:pointer;}
+  .done-toggle label{font-size:12.5px;color:var(--text-dim);cursor:pointer;}
+
+  /* TEAM MODAL */
+  .user-row{display:flex;align-items:center;gap:9px;padding:8px 6px;border-radius:var(--radius-sm);}
+  .user-row:hover{background:#ffffff06;}
+  .user-row .avatar{width:28px;height:28px;font-size:14px;}
+  .user-row-name{flex:1;font-size:13px;font-weight:500;}
+  .user-row-actions{display:flex;gap:4px;}
+  .icon-btn{background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:13px;padding:4px 6px;border-radius:4px;}
+  .icon-btn:hover{color:var(--text);background:#ffffff10;}
+
+  .emoji-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:4px;}
+  .emoji-opt{
+    background:var(--bg);border:1px solid var(--border);border-radius:6px;font-size:16px;
+    padding:6px 0;cursor:pointer;text-align:center;
+  }
+  .emoji-opt.sel{border-color:var(--accent);background:#18a0e818;}
+  .color-row{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:4px;}
+  .swatch{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;flex:none;}
+  .swatch.sel{border-color:#fff;}
+  .swatch-custom{width:22px;height:22px;border-radius:50%;padding:0;border:1px solid var(--border);background:none;cursor:pointer;overflow:hidden;}
+  .swatch-custom input{width:150%;height:150%;margin:-25%;cursor:pointer;border:none;padding:0;}
+
+  .divider{height:1px;background:var(--border-soft);margin:14px 0;}
+  .section-label{font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-family:"IBM Plex Mono",monospace;}
+  .empty-hint{font-size:12px;color:var(--text-faint);text-align:center;padding:10px;}
+
+  /* FILTER BAR */
+  .filterbar{
+    display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+    background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+    padding:10px 14px;margin-bottom:16px;
+  }
+  .filter-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .filter-label{font-size:10.5px;color:var(--text-faint);font-family:"IBM Plex Mono",monospace;text-transform:uppercase;letter-spacing:.5px;flex:none;}
+  .filter-people{display:flex;gap:6px;flex-wrap:wrap;}
+  .people-pill{
+    display:flex;align-items:center;gap:5px;border:1px solid var(--border);border-radius:999px;
+    padding:3px 10px 3px 4px;cursor:pointer;font-size:11.5px;color:var(--text-dim);background:var(--bg);
+    transition:border-color .15s, color .15s;
+  }
+  .people-pill .avatar{width:18px;height:18px;font-size:10px;}
+  .people-pill.sel{border-color:var(--accent);color:var(--text);background:#18a0e814;}
+  .filter-date-input{
+    background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);
+    color:var(--text);padding:5px 8px;font-size:12px;font-family:"IBM Plex Mono",monospace;
+  }
+  .filter-active-badge{
+    font-family:"IBM Plex Mono",monospace;font-size:10px;background:var(--accent);color:#06263a;
+    border-radius:999px;padding:1px 7px;font-weight:600;
+  }
+
+  ::-webkit-scrollbar{height:8px;width:8px;}
+  ::-webkit-scrollbar-thumb{background:#ffffff14;border-radius:4px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+
+  @media(max-width:520px){
+    .col{width:250px;}
+    .hdr{align-items:flex-start;}
+    .filterbar{flex-direction:column;align-items:stretch;gap:10px;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="hdr">
+    <div class="hdr-left">
+      <div class="hdr-mark">💡</div>
+      <div>
+        <div class="hdr-title">BLUMENAU <span>// ILUMINAÇÃO</span></div>
+        <div class="hdr-sub">Funil de atividades</div>
+      </div>
+    </div>
+    <div class="hdr-actions">
+      <span id="syncStatus" style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--text-faint);display:flex;align-items:center;gap:6px;margin-right:4px;">
+        <span id="syncDot" style="width:7px;height:7px;border-radius:50%;background:var(--text-faint);"></span>
+        <span id="syncLabel">conectando…</span>
+      </span>
+      <button class="btn" id="btnTheme" title="Alternar tema claro/escuro">🌙 Tema</button>
+      <button class="btn" id="btnTeam">👥 Equipe</button>
+      <button class="btn btn-accent" id="btnNewCard">+ Nova atividade</button>
+    </div>
+  </div>
+
+  <div class="summary" id="summary"></div>
+
+  <div class="filterbar">
+    <div class="filter-group" style="flex:1;min-width:180px;">
+      <span class="filter-label">🔍</span>
+      <input type="text" class="filter-date-input" id="filterSearch" placeholder="Buscar atividade, pessoa, observação..." style="flex:1;min-width:160px;font-family:'IBM Plex Sans',sans-serif;">
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">👤 Pessoa</span>
+      <div class="filter-people" id="filterPeople"></div>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">📂 Coluna</span>
+      <div class="filter-people" id="filterColumns"></div>
+    </div>
+    <div class="filter-group">
+      <label class="chk" style="gap:7px;">
+        <input type="checkbox" id="filterSortDue" checked>
+        <span style="font-size:11.5px;color:var(--text-dim);font-family:'IBM Plex Sans',sans-serif;">📅 Mais próximas de vencer primeiro</span>
+      </label>
+    </div>
+    <span class="filter-active-badge hidden" id="filterBadge"></span>
+    <button class="btn btn-sm btn-ghost" id="btnClearFilters">Limpar filtros</button>
+  </div>
+
+  <div class="board" id="board"></div>
+</div>
+
+<!-- CARD MODAL -->
+<div class="overlay hidden" id="cardOverlay">
+  <div class="modal">
+    <h3 id="cardModalTitle">Nova atividade</h3>
+    <div class="modal-sub">Preencha os dados da atividade de engenharia.</div>
+
+    <div class="field">
+      <label>Título da atividade</label>
+      <input type="text" id="fTitle" placeholder="Ex.: Revisão do desenho P&ID-014">
+    </div>
+
+    <div class="field">
+      <label>Responsável</label>
+      <select id="fUser"></select>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Data de início</label>
+        <input type="date" id="fStart">
+      </div>
+      <div class="field">
+        <label>Data da ação / prazo</label>
+        <input type="date" id="fDue">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Observação</label>
+      <textarea id="fObs" placeholder="Notas, pendências, próximos passos..."></textarea>
+    </div>
+
+    <div class="done-toggle">
+      <input type="checkbox" id="fDone">
+      <label for="fDone">Ação interna finalizada</label>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-danger hidden" id="btnDeleteCard">Excluir</button>
+      <div class="modal-actions-right">
+        <button class="btn" id="btnCancelCard">Cancelar</button>
+        <button class="btn btn-accent" id="btnSaveCard">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TEAM MODAL -->
+<div class="overlay hidden" id="teamOverlay">
+  <div class="modal">
+    <h3>Equipe</h3>
+    <div class="modal-sub">Personalize nome, cor e avatar de cada integrante.</div>
+
+    <div id="userList"></div>
+
+    <div class="divider"></div>
+    <div class="section-label" id="userFormLabel">Adicionar integrante</div>
+
+    <div class="field">
+      <label>Nome</label>
+      <input type="text" id="uName" placeholder="Ex.: Ana Souza">
+    </div>
+
+    <div class="field">
+      <label>Avatar</label>
+      <div class="emoji-grid" id="emojiGrid"></div>
+    </div>
+
+    <div class="field">
+      <label>Cor</label>
+      <div class="color-row" id="colorRow"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" id="btnCancelUser">Fechar</button>
+      <button class="btn btn-accent" id="btnSaveUser">Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="overlay hidden" id="confirmOverlay">
+  <div class="modal" style="width:320px;">
+    <h3 id="confirmTitle">Confirmar</h3>
+    <div class="modal-sub" id="confirmMsg"></div>
+    <div class="modal-actions">
+      <button class="btn" id="confirmNo">Cancelar</button>
+      <button class="btn btn-danger" id="confirmYes">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const EMOJIS = ["⚙️","🔧","🛠️","👷‍♂️","👷‍♀️","💡","🏗️","📐","🔩","🖥️","⚡","🧰","🧪","📡","🔬"];
+  const COLORS = ["#18a0e8","#3ecf8e","#4ea1f2","#f2c14e","#e05fb0","#8b6ef2","#f2545b","#5cd6d6"];
+
+  function uid(){ return Math.random().toString(36).slice(2,9); }
+
+  const defaultState = {
+    columns: [
+      {id:"col-todo", name:"A Fazer"},
+      {id:"col-doing", name:"Em Andamento"},
+      {id:"col-done", name:"Concluído"}
+    ],
+    users: [
+      {id:"user-diego",   name:"Diego Borba",           avatar:"💡", color:"#18a0e8"},
+      {id:"user-bryan",   name:"Bryan Felipe Vogt",      avatar:"🧪", color:"#3ecf8e"},
+      {id:"user-gabriel", name:"Gabriel Broering Mazzolla", avatar:"🔧", color:"#4ea1f2"},
+      {id:"user-bruno",   name:"Bruno Salgado Soares",   avatar:"🔩", color:"#f2c14e"},
+      {id:"user-lucas",   name:"Lucas Fogo Zampieri",    avatar:"🛠️", color:"#e05fb0"},
+      {id:"user-miriam",  name:"Miriam Silva Martins",   avatar:"📐", color:"#8b6ef2"},
+      {id:"user-mayara",  name:"Mayara Silva",           avatar:"📣", color:"#f2545b"},
+      {id:"user-richard", name:"Richard Ariel Klann",    avatar:"⚡", color:"#5cd6d6"},
+      {id:"user-duilio",  name:"Duilio Cesar Mocelin",   avatar:"👷‍♂️", color:"#ff8a34"}
+    ],
+    cards: []
+  };
+
+  let state = null;
+  let editingCardId = null;
+  let editingCardColumnId = null;
+  let selectedEmoji = EMOJIS[0];
+  let selectedColor = COLORS[0];
+  let confirmCallback = null;
+
+  const filterState = { userIds: new Set(), columnIds: new Set(), sortByDue: true, search: '', statuses: new Set() };
+
+  function cardMatchesFilter(card){
+    if(filterState.userIds.size > 0){
+      const key = card.userId || 'none';
+      if(!filterState.userIds.has(key)) return false;
+    }
+    if(filterState.statuses.size > 0){
+      if(!filterState.statuses.has(getStatus(card))) return false;
+    }
+    if(filterState.search){
+      const q = filterState.search.toLowerCase();
+      const user = userById(card.userId);
+      const haystack = [
+        card.title || '',
+        card.obs || '',
+        user ? user.name : ''
+      ].join(' ').toLowerCase();
+      if(!haystack.includes(q)) return false;
+    }
+    return true;
+  }
+
+  function sortCards(cards){
+    if(!filterState.sortByDue) return cards;
+    return cards.slice().sort((a,b)=>{
+      if(a.done !== b.done) return a.done ? 1 : -1;
+      if(!a.due && !b.due) return 0;
+      if(!a.due) return 1;
+      if(!b.due) return -1;
+      return a.due < b.due ? -1 : (a.due > b.due ? 1 : 0);
+    });
+  }
+
+  function filtersActiveCount(){
+    let n = filterState.userIds.size + filterState.columnIds.size + filterState.statuses.size;
+    if(filterState.search) n++;
+    return n;
+  }
+
+  function updateFilterBadge(){
+    const badge = document.getElementById('filterBadge');
+    const n = filtersActiveCount();
+    if(n > 0){ badge.textContent = n + ' filtro' + (n>1?'s':'') + ' ativo' + (n>1?'s':''); badge.classList.remove('hidden'); }
+    else { badge.classList.add('hidden'); }
+  }
+
+  function renderFilterPeople(){
+    const box = document.getElementById('filterPeople');
+    const nonePill = `<div class="people-pill ${filterState.userIds.has('none')?'sel':''}" data-filter-user="none">
+        <span class="avatar" style="background:#5c6672;width:18px;height:18px;font-size:10px;">–</span> Sem resp.
+      </div>`;
+    const userPills = state.users.map(u=>`
+      <div class="people-pill ${filterState.userIds.has(u.id)?'sel':''}" data-filter-user="${u.id}">
+        <span class="avatar" style="background:${u.color}">${u.avatar}</span> ${escapeHTML(u.name)}
+      </div>
+    `).join('');
+    box.innerHTML = userPills + nonePill;
+  }
+
+  function renderFilterColumns(){
+    const box = document.getElementById('filterColumns');
+    box.innerHTML = state.columns.map(col=>`
+      <div class="people-pill ${filterState.columnIds.has(col.id)?'sel':''}" data-filter-col="${col.id}">
+        ${escapeHTML(col.name)}
+      </div>
+    `).join('');
+  }
+
+  /* ---------- Firebase / Firestore ---------- */
+  const firebaseConfig = {
+    apiKey: "AIzaSyC46ub8XuuJY79-d9nyJpY4QSFGDBuSSkM",
+    authDomain: "kanbanempalux.firebaseapp.com",
+    projectId: "kanbanempalux",
+    storageBucket: "kanbanempalux.firebasestorage.app",
+    messagingSenderId: "616706189340",
+    appId: "1:616706189340:web:efc282bdf5956612ce57d9"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const boardRef = db.collection('kanban').doc('blumenau-board');
+
+  let isRemoteUpdate = false;
+  let saveTimer = null;
+
+  function setSyncStatus(status){
+    const dot = document.getElementById('syncDot');
+    const label = document.getElementById('syncLabel');
+    if(!dot || !label) return;
+    if(status === 'ok'){ dot.style.background = 'var(--ok)'; label.textContent = 'sincronizado'; }
+    else if(status === 'saving'){ dot.style.background = 'var(--warn)'; label.textContent = 'salvando…'; }
+    else if(status === 'error'){ dot.style.background = 'var(--late)'; label.textContent = 'erro de conexão'; }
+    else { dot.style.background = 'var(--text-faint)'; label.textContent = 'conectando…'; }
+  }
+
+  function loadState(){
+    boardRef.onSnapshot(snap=>{
+      if(snap.exists){
+        isRemoteUpdate = true;
+        state = snap.data().payload ? JSON.parse(snap.data().payload) : JSON.parse(JSON.stringify(defaultState));
+        render();
+        isRemoteUpdate = false;
+      } else {
+        state = JSON.parse(JSON.stringify(defaultState));
+        boardRef.set({payload: JSON.stringify(state)}).catch(e=>console.error(e));
+        render();
+      }
+      setSyncStatus('ok');
+    }, err=>{
+      console.error('Erro Firestore:', err);
+      setSyncStatus('error');
+      if(!state){ state = JSON.parse(JSON.stringify(defaultState)); render(); }
+    });
+  }
+
+  function saveState(){
+    if(isRemoteUpdate) return; // evita loop ao receber atualização remota
+    setSyncStatus('saving');
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(()=>{
+      boardRef.set({payload: JSON.stringify(state)})
+        .then(()=>setSyncStatus('ok'))
+        .catch(e=>{ console.error('Falha ao salvar', e); setSyncStatus('error'); });
+    }, 250);
+  }
+
+  function fmtDate(d){
+    if(!d) return null;
+    const [y,m,day] = d.split('-');
+    return `${day}/${m}/${y}`;
+  }
+
+  function getStatus(card){
+    if(card.done) return 'done';
+    if(!card.due) return 'none';
+    const today = new Date(); today.setHours(0,0,0,0);
+    const due = new Date(card.due+'T00:00:00');
+    const diffDays = Math.round((due-today)/86400000);
+    if(diffDays < 0) return 'red';
+    if(diffDays <= 1) return 'yellow';
+    return 'green';
+  }
+
+  function statusLabel(card){
+    const st = getStatus(card);
+    if(st==='done') return 'Finalizado';
+    if(st==='none') return 'Sem prazo';
+    const today = new Date(); today.setHours(0,0,0,0);
+    const due = new Date(card.due+'T00:00:00');
+    const diffDays = Math.round((due-today)/86400000);
+    if(st==='red') return `Atrasado ${Math.abs(diffDays)}d`;
+    if(diffDays===0) return 'Vence hoje';
+    if(diffDays===1) return 'Vence amanhã';
+    return 'No prazo';
+  }
+
+  function userById(id){ return state.users.find(u=>u.id===id); }
+
+  function findFinishedColumn(){
+    const normalize = s => (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+    let col = state.columns.find(c=> normalize(c.name).includes('conclu'));
+    if(!col) col = state.columns.find(c=> normalize(c.name).includes('finaliz'));
+    if(!col && state.columns.length) col = state.columns[state.columns.length - 1];
+    return col;
+  }
+
+  function moveToLastColumnIfDone(card){
+    if(card.done){
+      const finishedCol = findFinishedColumn();
+      if(finishedCol) card.columnId = finishedCol.id;
+    }
+  }
+
+  function renderSummary(){
+    const all = state.cards.filter(cardMatchesFilter);
+    const allNoStatus = state.cards.filter(c=>{
+      const save = filterState.statuses; filterState.statuses = new Set();
+      const r = cardMatchesFilter(c);
+      filterState.statuses = save;
+      return r;
+    });
+    const counts = {red:0, yellow:0, green:0, done:0};
+    allNoStatus.forEach(c=>{ const s=getStatus(c); if(counts[s]!==undefined) counts[s]++; });
+    const isActive = s => filterState.statuses.has(s);
+    const totalActive = filterState.statuses.size === 0;
+    const el = document.getElementById('summary');
+    el.innerHTML = `
+      <div class="chip chip-click ${totalActive?'chip-active':''}" data-status-filter="__all__" title="Mostrar todas"><span>Total</span> <b>${allNoStatus.length}</b></div>
+      <div class="chip chip-click ${isActive('red')?'chip-active':''}" data-status-filter="red" title="Filtrar atrasadas"><span class="dot dot-red"></span> Atrasadas <b>${counts.red}</b></div>
+      <div class="chip chip-click ${isActive('yellow')?'chip-active':''}" data-status-filter="yellow" title="Filtrar vencendo"><span class="dot dot-yellow"></span> Vencendo <b>${counts.yellow}</b></div>
+      <div class="chip chip-click ${isActive('green')?'chip-active':''}" data-status-filter="green" title="Filtrar no prazo"><span class="dot dot-green"></span> No prazo <b>${counts.green}</b></div>
+      <div class="chip chip-click ${isActive('done')?'chip-active':''}" data-status-filter="done" title="Filtrar finalizadas"><span class="dot dot-grey"></span> Finalizadas <b>${counts.done}</b></div>
+    `;
+  }
+
+  function cardHTML(card){
+    const st = getStatus(card);
+    const user = userById(card.userId);
+    const userHTML = user
+      ? `<div class="card-user"><div class="avatar" style="background:${user.color}">${user.avatar}</div><div class="card-user-name">${escapeHTML(user.name)}</div></div>`
+      : `<div class="card-user"><span class="card-user-none">Sem responsável</span></div>`;
+    const obsHTML = card.obs ? `<div class="card-obs">${escapeHTML(card.obs)}</div>` : '';
+    const datesHTML = `<div class="card-dates">
+        ${card.start ? `<div>Início: <b>${fmtDate(card.start)}</b></div>` : ''}
+        ${card.due ? `<div>Prazo: <b>${fmtDate(card.due)}</b></div>` : ''}
+      </div>`;
+    return `
+      <div class="card st-${st}" draggable="true" data-card-id="${card.id}">
+        <p class="card-title">${escapeHTML(card.title || '(sem título)')}</p>
+        ${userHTML}
+        ${obsHTML}
+        ${datesHTML}
+        <div class="card-foot">
+          <span class="status-tag st-${st}">${statusLabel(card)}</span>
+          <label class="chk" title="Ação interna finalizada">
+            <input type="checkbox" data-quick-done="${card.id}" ${card.done?'checked':''}>
+          </label>
+        </div>
+      </div>
+    `;
+  }
+
+  function colHTML(col){
+    let cards = state.cards.filter(c=>c.columnId===col.id && cardMatchesFilter(c));
+    cards = sortCards(cards);
+    const totalInCol = state.cards.filter(c=>c.columnId===col.id).length;
+    const canDelete = state.columns.length > 1;
+    return `
+      <div class="col" data-col-id="${col.id}">
+        <div class="col-hdr">
+          <span class="col-grip" draggable="true" data-col-grip="${col.id}" title="Arraste para reordenar a coluna">⠿</span>
+          <input class="col-name" data-col-name="${col.id}" value="${escapeAttr(col.name)}">
+          <span class="col-count">${cards.length}${cards.length!==totalInCol ? '/'+totalInCol : ''}</span>
+          ${canDelete ? `<button class="col-del" data-del-col="${col.id}" title="Remover coluna">✕</button>` : ''}
+        </div>
+        <div class="col-body" data-col-body="${col.id}">
+          ${cards.length ? cards.map(cardHTML).join('') : `<div class="col-empty">${totalInCol ? 'Nenhuma atividade com esse filtro' : 'Nenhuma atividade'}</div>`}
+        </div>
+        <div class="col-scroll-hint"></div>
+        <button class="col-add" data-add-card="${col.id}">+ Adicionar atividade</button>
+      </div>
+    `;
+  }
+
+  function render(){
+    renderSummary();
+    renderFilterPeople();
+    renderFilterColumns();
+    updateFilterBadge();
+    const board = document.getElementById('board');
+    const visibleColumns = state.columns.filter(c=> filterState.columnIds.size===0 || filterState.columnIds.has(c.id));
+    board.innerHTML = visibleColumns.map(colHTML).join('') +
+      `<button class="col-new" id="btnAddColumn">+ Nova coluna</button>`;
+    attachDnD();
+  }
+
+  function escapeHTML(s){
+    return String(s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+  function escapeAttr(s){ return escapeHTML(s); }
+
+  /* ---------- Drag & drop ---------- */
+  function attachDnD(){
+    document.querySelectorAll('.card').forEach(cardEl=>{
+      cardEl.addEventListener('dragstart', e=>{
+        e.stopPropagation();
+        e.dataTransfer.setData('text/plain', cardEl.dataset.cardId);
+        e.dataTransfer.effectAllowed = 'move';
+        setTimeout(()=>cardEl.style.opacity='0.4',0);
+      });
+      cardEl.addEventListener('dragend', e=>{ e.stopPropagation(); cardEl.style.opacity='1'; });
+    });
+
+    document.querySelectorAll('.col-grip').forEach(gripEl=>{
+      gripEl.addEventListener('dragstart', e=>{
+        e.stopPropagation();
+        e.dataTransfer.setData('application/x-col', gripEl.dataset.colGrip);
+        e.dataTransfer.effectAllowed = 'move';
+        const colEl = gripEl.closest('.col');
+        setTimeout(()=>{ if(colEl) colEl.style.opacity='0.4'; },0);
+      });
+      gripEl.addEventListener('dragend', e=>{
+        e.stopPropagation();
+        const colEl = gripEl.closest('.col');
+        if(colEl) colEl.style.opacity='1';
+        document.querySelectorAll('.col').forEach(c=>c.classList.remove('col-reorder-left','col-reorder-right'));
+      });
+    });
+
+    document.querySelectorAll('.col').forEach(colEl=>{
+      colEl.addEventListener('dragover', e=>{
+        e.preventDefault();
+        const isColDrag = e.dataTransfer.types.includes('application/x-col');
+        if(isColDrag){
+          const rect = colEl.getBoundingClientRect();
+          const before = (e.clientX - rect.left) < rect.width / 2;
+          colEl.classList.toggle('col-reorder-left', before);
+          colEl.classList.toggle('col-reorder-right', !before);
+          colEl.classList.remove('dragover');
+        } else {
+          colEl.classList.add('dragover');
+        }
+      });
+      colEl.addEventListener('dragleave', ()=>{
+        colEl.classList.remove('dragover','col-reorder-left','col-reorder-right');
+      });
+      colEl.addEventListener('drop', e=>{
+        e.preventDefault();
+        colEl.classList.remove('dragover');
+        const draggedColId = e.dataTransfer.getData('application/x-col');
+        if(draggedColId){
+          const rect = colEl.getBoundingClientRect();
+          const before = (e.clientX - rect.left) < rect.width / 2;
+          colEl.classList.remove('col-reorder-left','col-reorder-right');
+          reorderColumn(draggedColId, colEl.dataset.colId, before);
+          return;
+        }
+        const cardId = e.dataTransfer.getData('text/plain');
+        const card = state.cards.find(c=>c.id===cardId);
+        if(card){
+          card.columnId = colEl.dataset.colId;
+          saveState();
+          render();
+        }
+      });
+    });
+  }
+
+  function reorderColumn(draggedId, targetId, before){
+    if(draggedId === targetId) return;
+    const fromIdx = state.columns.findIndex(c=>c.id===draggedId);
+    if(fromIdx === -1) return;
+    const [moved] = state.columns.splice(fromIdx, 1);
+    let toIdx = state.columns.findIndex(c=>c.id===targetId);
+    if(toIdx === -1) toIdx = state.columns.length;
+    state.columns.splice(before ? toIdx : toIdx + 1, 0, moved);
+    saveState();
+    render();
+  }
+
+  /* ---------- Delegated clicks ---------- */
+  document.getElementById('board').addEventListener('click', e=>{
+    const addCardBtn = e.target.closest('[data-add-card]');
+    if(addCardBtn){ openCardModal(null, addCardBtn.dataset.addCard); return; }
+
+    const delColBtn = e.target.closest('[data-del-col]');
+    if(delColBtn){
+      const colId = delColBtn.dataset.delCol;
+      const hasCards = state.cards.some(c=>c.columnId===colId);
+      openConfirm(
+        'Remover coluna',
+        hasCards ? 'Esta coluna tem atividades. Elas serão movidas para a primeira coluna. Deseja continuar?' : 'Deseja remover esta coluna?',
+        ()=>{
+          const fallback = state.columns.find(c=>c.id!==colId);
+          state.cards.forEach(c=>{ if(c.columnId===colId && fallback) c.columnId = fallback.id; });
+          state.columns = state.columns.filter(c=>c.id!==colId);
+          saveState(); render();
+        }
+      );
+      return;
+    }
+
+    const cardEl = e.target.closest('.card');
+    if(cardEl && !e.target.closest('[data-quick-done]')){
+      openCardModal(cardEl.dataset.cardId, null);
+      return;
+    }
+
+    if(e.target.id === 'btnAddColumn'){
+      const name = 'Nova coluna';
+      state.columns.push({id:'col-'+uid(), name});
+      saveState(); render();
+      return;
+    }
+  });
+
+  document.getElementById('board').addEventListener('change', e=>{
+    if(e.target.matches('[data-quick-done]')){
+      const id = e.target.dataset.quickDone;
+      const card = state.cards.find(c=>c.id===id);
+      if(card){
+        card.done = e.target.checked;
+        moveToLastColumnIfDone(card);
+        saveState(); render();
+      }
+    }
+  });
+
+  document.getElementById('board').addEventListener('blur', e=>{
+    if(e.target.matches('[data-col-name]')){
+      const id = e.target.dataset.colName;
+      const col = state.columns.find(c=>c.id===id);
+      if(col){ col.name = e.target.value.trim() || col.name; saveState(); renderSummary(); }
+    }
+  }, true);
+
+  /* ---------- Card modal ---------- */
+  function populateUserSelect(){
+    const sel = document.getElementById('fUser');
+    sel.innerHTML = `<option value="">— Sem responsável —</option>` +
+      state.users.map(u=>`<option value="${u.id}">${u.avatar} ${escapeHTML(u.name)}</option>`).join('');
+  }
+
+  function openCardModal(cardId, defaultColumnId){
+    editingCardId = cardId;
+    populateUserSelect();
+    const overlay = document.getElementById('cardOverlay');
+    const delBtn = document.getElementById('btnDeleteCard');
+
+    if(cardId){
+      const card = state.cards.find(c=>c.id===cardId);
+      editingCardColumnId = card.columnId;
+      document.getElementById('cardModalTitle').textContent = 'Editar atividade';
+      document.getElementById('fTitle').value = card.title || '';
+      document.getElementById('fUser').value = card.userId || '';
+      document.getElementById('fStart').value = card.start || '';
+      document.getElementById('fDue').value = card.due || '';
+      document.getElementById('fObs').value = card.obs || '';
+      document.getElementById('fDone').checked = !!card.done;
+      delBtn.classList.remove('hidden');
+    } else {
+      editingCardColumnId = defaultColumnId || state.columns[0].id;
+      document.getElementById('cardModalTitle').textContent = 'Nova atividade';
+      document.getElementById('fTitle').value = '';
+      document.getElementById('fUser').value = '';
+      document.getElementById('fStart').value = '';
+      document.getElementById('fDue').value = '';
+      document.getElementById('fObs').value = '';
+      document.getElementById('fDone').checked = false;
+      delBtn.classList.add('hidden');
+    }
+    overlay.classList.remove('hidden');
+  }
+
+  function closeCardModal(){
+    document.getElementById('cardOverlay').classList.add('hidden');
+    editingCardId = null;
+  }
+
+  document.getElementById('btnNewCard').addEventListener('click', ()=>openCardModal(null, state.columns[0].id));
+  document.getElementById('btnCancelCard').addEventListener('click', closeCardModal);
+  document.getElementById('cardOverlay').addEventListener('click', e=>{ if(e.target.id==='cardOverlay') closeCardModal(); });
+
+  document.getElementById('btnSaveCard').addEventListener('click', ()=>{
+    const title = document.getElementById('fTitle').value.trim();
+    if(!title){ document.getElementById('fTitle').focus(); return; }
+    const data = {
+      title,
+      userId: document.getElementById('fUser').value || null,
+      start: document.getElementById('fStart').value || null,
+      due: document.getElementById('fDue').value || null,
+      obs: document.getElementById('fObs').value.trim(),
+      done: document.getElementById('fDone').checked
+    };
+    if(editingCardId){
+      const card = state.cards.find(c=>c.id===editingCardId);
+      Object.assign(card, data);
+      moveToLastColumnIfDone(card);
+    } else {
+      const newCard = Object.assign({id:'card-'+uid(), columnId: editingCardColumnId}, data);
+      moveToLastColumnIfDone(newCard);
+      state.cards.push(newCard);
+    }
+    saveState(); render(); closeCardModal();
+  });
+
+  document.getElementById('btnDeleteCard').addEventListener('click', ()=>{
+    const id = editingCardId;
+    openConfirm('Excluir atividade', 'Tem certeza que deseja excluir esta atividade?', ()=>{
+      state.cards = state.cards.filter(c=>c.id!==id);
+      saveState(); render(); closeCardModal();
+    });
+  });
+
+  /* ---------- Team modal ---------- */
+  function renderEmojiGrid(){
+    const grid = document.getElementById('emojiGrid');
+    grid.innerHTML = EMOJIS.map(em=>`<button type="button" class="emoji-opt ${em===selectedEmoji?'sel':''}" data-emoji="${em}">${em}</button>`).join('');
+  }
+  function renderColorRow(){
+    const row = document.getElementById('colorRow');
+    row.innerHTML = COLORS.map(c=>`<button type="button" class="swatch ${c===selectedColor?'sel':''}" data-color="${c}" style="background:${c}"></button>`).join('') +
+      `<label class="swatch-custom" style="background:${COLORS.includes(selectedColor)?'#333':selectedColor}">
+         <input type="color" id="customColor" value="${selectedColor}">
+       </label>`;
+  }
+
+  let editingUserId = null;
+
+  function renderUserList(){
+    const list = document.getElementById('userList');
+    if(!state.users.length){
+      list.innerHTML = `<div class="empty-hint">Nenhum integrante cadastrado ainda.</div>`;
+      return;
+    }
+    list.innerHTML = state.users.map(u=>`
+      <div class="user-row">
+        <div class="avatar" style="background:${u.color}">${u.avatar}</div>
+        <div class="user-row-name">${escapeHTML(u.name)}</div>
+        <div class="user-row-actions">
+          <button class="icon-btn" data-edit-user="${u.id}">✎</button>
+          <button class="icon-btn" data-del-user="${u.id}">🗑</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function openTeamModal(){
+    editingUserId = null;
+    document.getElementById('uName').value = '';
+    selectedEmoji = EMOJIS[0];
+    selectedColor = COLORS[0];
+    document.getElementById('userFormLabel').textContent = 'Adicionar integrante';
+    document.getElementById('btnSaveUser').textContent = 'Adicionar';
+    renderUserList();
+    renderEmojiGrid();
+    renderColorRow();
+    document.getElementById('teamOverlay').classList.remove('hidden');
+  }
+  function closeTeamModal(){ document.getElementById('teamOverlay').classList.add('hidden'); }
+
+  document.getElementById('btnTeam').addEventListener('click', openTeamModal);
+  document.getElementById('btnCancelUser').addEventListener('click', closeTeamModal);
+  document.getElementById('teamOverlay').addEventListener('click', e=>{ if(e.target.id==='teamOverlay') closeTeamModal(); });
+
+  document.getElementById('emojiGrid').addEventListener('click', e=>{
+    const btn = e.target.closest('[data-emoji]');
+    if(btn){ selectedEmoji = btn.dataset.emoji; renderEmojiGrid(); }
+  });
+  document.getElementById('colorRow').addEventListener('click', e=>{
+    const btn = e.target.closest('[data-color]');
+    if(btn){ selectedColor = btn.dataset.color; renderColorRow(); }
+  });
+  document.getElementById('colorRow').addEventListener('input', e=>{
+    if(e.target.id==='customColor'){ selectedColor = e.target.value; renderColorRow(); }
+  });
+
+  document.getElementById('userList').addEventListener('click', e=>{
+    const editBtn = e.target.closest('[data-edit-user]');
+    if(editBtn){
+      const u = state.users.find(x=>x.id===editBtn.dataset.editUser);
+      editingUserId = u.id;
+      document.getElementById('uName').value = u.name;
+      selectedEmoji = u.avatar;
+      selectedColor = u.color;
+      document.getElementById('userFormLabel').textContent = 'Editar integrante';
+      document.getElementById('btnSaveUser').textContent = 'Salvar alterações';
+      renderEmojiGrid(); renderColorRow();
+      document.getElementById('uName').focus();
+      return;
+    }
+    const delBtn = e.target.closest('[data-del-user]');
+    if(delBtn){
+      const id = delBtn.dataset.delUser;
+      openConfirm('Remover integrante', 'As atividades atribuídas a esta pessoa ficarão sem responsável. Continuar?', ()=>{
+        state.users = state.users.filter(u=>u.id!==id);
+        state.cards.forEach(c=>{ if(c.userId===id) c.userId = null; });
+        saveState(); renderUserList(); render();
+      });
+    }
+  });
+
+  document.getElementById('btnSaveUser').addEventListener('click', ()=>{
+    const name = document.getElementById('uName').value.trim();
+    if(!name){ document.getElementById('uName').focus(); return; }
+    if(editingUserId){
+      const u = state.users.find(x=>x.id===editingUserId);
+      u.name = name; u.avatar = selectedEmoji; u.color = selectedColor;
+    } else {
+      state.users.push({id:'user-'+uid(), name, avatar:selectedEmoji, color:selectedColor});
+    }
+    saveState(); render();
+    editingUserId = null;
+    document.getElementById('uName').value = '';
+    selectedEmoji = EMOJIS[0]; selectedColor = COLORS[0];
+    document.getElementById('userFormLabel').textContent = 'Adicionar integrante';
+    document.getElementById('btnSaveUser').textContent = 'Adicionar';
+    renderEmojiGrid(); renderColorRow(); renderUserList();
+  });
+
+  /* ---------- Confirm modal ---------- */
+  function openConfirm(title, msg, onYes){
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmMsg').textContent = msg;
+    confirmCallback = onYes;
+    document.getElementById('confirmOverlay').classList.remove('hidden');
+  }
+  document.getElementById('confirmNo').addEventListener('click', ()=>{
+    document.getElementById('confirmOverlay').classList.add('hidden');
+    confirmCallback = null;
+  });
+  document.getElementById('confirmYes').addEventListener('click', ()=>{
+    document.getElementById('confirmOverlay').classList.add('hidden');
+    if(confirmCallback) confirmCallback();
+    confirmCallback = null;
+  });
+
+  loadState();
+
+  /* ---------- Filtros ---------- */
+  document.getElementById('summary').addEventListener('click', e=>{
+    const chip = e.target.closest('[data-status-filter]');
+    if(!chip) return;
+    const key = chip.dataset.statusFilter;
+    if(key === '__all__'){
+      filterState.statuses.clear();
+    } else if(filterState.statuses.has(key)){
+      filterState.statuses.delete(key);
+    } else {
+      filterState.statuses.add(key);
+    }
+    render();
+  });
+  document.getElementById('filterSearch').addEventListener('input', e=>{
+    filterState.search = e.target.value.trim();
+    render();
+  });
+  document.getElementById('filterPeople').addEventListener('click', e=>{
+    const pill = e.target.closest('[data-filter-user]');
+    if(!pill) return;
+    const key = pill.dataset.filterUser;
+    if(filterState.userIds.has(key)) filterState.userIds.delete(key);
+    else filterState.userIds.add(key);
+    render();
+  });
+  document.getElementById('filterColumns').addEventListener('click', e=>{
+    const pill = e.target.closest('[data-filter-col]');
+    if(!pill) return;
+    const key = pill.dataset.filterCol;
+    if(filterState.columnIds.has(key)) filterState.columnIds.delete(key);
+    else filterState.columnIds.add(key);
+    render();
+  });
+  document.getElementById('filterSortDue').addEventListener('change', e=>{
+    filterState.sortByDue = e.target.checked;
+    render();
+  });
+  document.getElementById('btnClearFilters').addEventListener('click', ()=>{
+    filterState.userIds.clear();
+    filterState.columnIds.clear();
+    filterState.statuses.clear();
+    filterState.sortByDue = true;
+    filterState.search = '';
+    document.getElementById('filterSortDue').checked = true;
+    document.getElementById('filterSearch').value = '';
+    render();
+  });
+
+  /* ---------- Tema claro/escuro ---------- */
+  const btnTheme = document.getElementById('btnTheme');
+  function updateThemeBtn(){
+    const isLight = document.body.classList.contains('light-theme');
+    btnTheme.textContent = isLight ? '☀️ Tema' : '🌙 Tema';
+  }
+  btnTheme.addEventListener('click', ()=>{
+    document.body.classList.toggle('light-theme');
+    updateThemeBtn();
+  });
+  updateThemeBtn();
+})();
+</script>
+</body>
+</html>
